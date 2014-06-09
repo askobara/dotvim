@@ -231,8 +231,8 @@ endif
   NeoBundle 'SirVer/ultisnips', {'depends': 'honza/vim-snippets'} "{{{
     let g:UltiSnipsSnippetsDir="~/.vim/UltiSnips"
     " Trigger configuration.
-    let g:UltiSnipsExpandTrigger="<tab>"
-    let g:UltiSnipsJumpForwardTrigger="<tab>"
+    let g:UltiSnipsExpandTrigger="<F30>"
+    let g:UltiSnipsJumpForwardTrigger="<F30>"
     let g:UltiSnipsJumpBackwardTrigger="<s-tab>"
 
     " If you want :UltiSnipsEdit to split your window.
