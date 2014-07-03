@@ -88,6 +88,8 @@ set tags=tags;/
 
 set background=dark
 
+set completeopt-=preview
+
 if exists('+colorcolumn')
   set colorcolumn=80
   autocmd WinLeave * setlocal nocursorcolumn
@@ -114,9 +116,9 @@ endif
 
   NeoBundle 'bling/vim-airline' "{{{
     let g:airline_theme = 'flatlandia'
-    let g:airline#extensions#tabline#enabled = 1
     let g:airline_powerline_fonts = 1
-    let g:airline#extensions#syntastic#enabled = 0
+    let g:airline#extensions#tabline#enabled = 1
+    let g:airline#extensions#syntastic#enabled = 1
     let g:airline#extensions#branch#enabled = 1
   "}}}
 
@@ -127,8 +129,10 @@ endif
     let g:vimfiler_data_directory = s:get_cache_dir('vimfiler')
     let g:vimfiler_tree_opened_icon = '▼'
     let g:vimfiler_tree_closed_icon = '▶'
-    let g:vimfiler_tree_leaf_icon = ''
-    " let g:vimfiler_readonly_file_icon =
+    let g:vimfiler_tree_leaf_icon = ' '
+    let g:vimfiler_marked_file_icon = '★'
+    let g:vimfiler_readonly_file_icon = ''
+
     nmap <silent> <A-f> :VimFilerExplorer -find<CR>
     autocmd FileType vimfiler
           \ nmap <silent><buffer><expr> <Cr> vimfiler#smart_cursor_map(
@@ -162,10 +166,10 @@ endif
     nmap <space> [unite]
     nnoremap [unite] <nop>
 
-    nnoremap <silent> [unite]f :<C-u>Unite -toggle -auto-resize -buffer-name=files file_rec/async:!<cr><c-u>
+    nnoremap <silent> [unite]f :<C-u>Unite -auto-resize -toggle -buffer-name=files file_rec/async:!<cr>
     nnoremap <silent> [unite]y :<C-u>Unite -buffer-name=yanks history/yank<cr>
-    nnoremap <silent> [unite]/ :<C-u>Unite -no-quit -buffer-name=search grep:.<cr>
-    nnoremap <silent> [unite]s :<C-u>Unite -toggle -auto-resize -quick-match buffer<cr>
+    nnoremap <silent> [unite]/ :<C-u>Unite -toggle -buffer-name=search grep:.<cr>
+    nnoremap <silent> [unite]s :<C-u>Unite -auto-resize -toggle -buffer-name=buffers buffer_tab<cr>
     " Custom mappings for the unite buffer
     autocmd FileType unite call s:unite_settings()
     function! s:unite_settings()
@@ -178,7 +182,7 @@ endif
   "}}}
   " Most Recently Use
   NeoBundleLazy 'Shougo/neomru.vim', {'autoload':{'unite_sources':'file_mru'}} "{{{
-    nnoremap <silent> [unite]e :<C-u>Unite -buffer-name=recent file_mru<cr>
+    nnoremap <silent> [unite]e :<C-u>Unite -auto-resize -buffer-name=recent file_mru<cr>
   "}}}
 
   NeoBundleLazy 'Shougo/unite-outline', {'autoload':{'unite_sources':'outline'}} "{{{
@@ -195,7 +199,7 @@ endif
     let g:neocomplete#data_directory=s:get_cache_dir('neocomplete')
 
     " <CR>: insert candidate and close neocomplete popup menu
-    inoremap <expr><CR>  pumvisible() ? neocomplete#close_popup() : "\<CR>"
+    inoremap <expr><CR> pumvisible() ? neocomplete#close_popup() : "\<CR>"
 
     " <BS>: close popup and delete backword char.
     inoremap <expr><BS> neocomplete#smart_close_popup()."\<C-h>"
@@ -321,22 +325,10 @@ endif
 
   " Multi-language DBGP debugger client for Vim (PHP, Python, Perl, Ruby, etc.)
   NeoBundle 'joonty/vdebug.git' " {{{
-    let g:vdebug_options= {
-      \ "port" : 9000,
-      \ "server" : 'localhost',
-      \ "timeout" : 20,
-      \ "on_close" : 'detach',
-      \ "break_on_open" : 1,
-      \ "ide_key" : 'XDEBUG',
-      \ "path_maps" : {},
-      \ "debug_window_level" : 0,
-      \ "debug_file_level" : 0,
-      \ "debug_file" : "",
-      \ "watch_window_style" : 'expanded',
-      \ "marker_default" : '⬦',
-      \ "marker_closed_tree" : '▸',
-      \ "marker_open_tree" : '▾'
-    \}
+    if !exists('g:vdebug_options')
+      let g:vdebug_options = {}
+    endif
+    let g:vdebug_options["ide_key"] = 'XDEBUG'
   "}}}
 
   NeoBundle 'mhinz/vim-startify' "{{{
