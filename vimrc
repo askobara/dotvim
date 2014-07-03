@@ -204,30 +204,51 @@ endif
 
 " PHP {{{
 
-  " PHP Documentor for VIM - Generates PHP docblocks
+  " php documentor for vim - generates php docblocks
   NeoBundleLazy 'tobyS/pdv', {'depends': 'tobyS/vmustache', 'autoload': {'filetypes': 'php'}} "{{{
     let g:pdv_template_dir = $HOME."/.vim/bundle/pdv/templates_snip"
     nnoremap <leader><leader>p :call pdv#DocumentWithSnip()<CR>
   "}}}
+
+  " php refactoring support for vim
+  NeoBundleLazy 'vim-php/vim-php-refactoring', {'autoload': {'filetypes': 'php'}} "{{{
+    let g:php_refactor_command = 'php ~/bin/refactor.phar'
+  "}}}
+
+  NeoBundleLazy 'shawncplus/phpcomplete.vim', {'autoload': {'filetypes': 'php'}} "{{{
+    if !exists('g:neocomplete#sources#omni#input_patterns')
+      let g:neocomplete#sources#omni#input_patterns = {}
+    endif
+    let g:neocomplete#sources#omni#input_patterns.php =
+        \ '\h\w*\|[^. \t]->\%(\h\w*\)\?\|\h\w*::\%(\h\w*\)\?'
+  "}}}
+
 "}}}
 
 " Javascript {{{
   NeoBundleLazy 'pangloss/vim-javascript', {'autoload':{'filetypes':['javascript']}}
-  NeoBundleLazy 'maksimr/vim-jsbeautify', {'autoload':{'filetypes':['javascript']}} "{{{
-    nnoremap <leader>sb :call JsBeautify()<cr>
-  "}}}
+  NeoBundleLazy 'michalliu/sourcebeautify.vim', {'autoload':{'filetypes':['javascript', 'html', 'css']}, 'depends': ['michalliu/jsruntime.vim', 'michalliu/jsoncodecs.vim']}
+
+  " Syntax highlighting for JSON in Vim
   NeoBundleLazy 'leshill/vim-json', {'autoload':{'filetypes':['javascript','json']}}
   NeoBundleLazy 'othree/javascript-libraries-syntax.vim', {'autoload':{'filetypes':['javascript','coffee','ls','typescript']}} " {{{
-    autocmd BufReadPre *.js let b:javascript_lib_use_jquery = 1
-    autocmd BufReadPre *.js let b:javascript_lib_use_underscore = 1
-    autocmd BufReadPre *.js let b:javascript_lib_use_backbone = 1
-    autocmd BufReadPre *.js let b:javascript_lib_use_prelude = 0
-    autocmd BufReadPre *.js let b:javascript_lib_use_angularjs = 1
+    let g:used_javascript_libs = 'underscore,angularjs,jquery'
   "}}}
 " }}}
 
+" HTML/CSS {{{
+  NeoBundleLazy 'vim-scripts/indenthtml.vim', {'autoload': {'filetypes': ['html']}}
+  NeoBundleLazy 'gorodinskiy/vim-coloresque.git', {'autoload': {'filetypes': ['html', 'css', 'less', 'sass']}}
+" }}}
+
+" Git {{{
+  " a Git wrapper so awesome, it should be illegal
+  NeoBundle 'tpope/vim-fugitive', {'depends': 'tpope/vim-git'}
+
+  NeoBundleLazy 'idanarye/vim-merginal', {'autoload':{'commands': 'Merginal'}, 'depends': 'tpope/vim-fugitive'}
+" }}}
+
 " Snippets {{{
-  NeoBundle 'honza/vim-snippets'
   NeoBundle 'SirVer/ultisnips', {'depends': 'honza/vim-snippets'} "{{{
     let g:UltiSnipsSnippetsDir="~/.vim/UltiSnips"
     " Trigger configuration.
@@ -280,9 +301,6 @@ endif
 
 " Misc {{{
 
-  " a Git wrapper so awesome, it should be illegal
-  NeoBundle 'tpope/vim-fugitive'
-
   " Plugin to unload all buffers but the current one
   NeoBundle 'duff/vim-bufonly'
 
@@ -329,7 +347,8 @@ endif
 
   NeoBundle 'scrooloose/syntastic' "{{{
     let g:syntastic_php_checkers = ['php', 'phpcs', 'phpmd']
-    let g:syntastic_javascript_checkers = ['jslint']
+    let g:syntastic_javascript_checkers = ['jshint']
+    let g:syntastic_html_checkers = ['tidy']
   "}}}
 "}}}
 
