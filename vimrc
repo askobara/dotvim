@@ -372,14 +372,46 @@ endif
       else
         return neocomplete#start_manual_complete()
     endfunction "}}}
+
+    function! s:is_valid_buffer(bufnr) "{{{
+      let bufnr = str2nr(a:bufnr)
+      return bufexists(bufnr)
+            \ && getbufvar(bufnr, '&modifiable')
+            \ && getbufvar(bufnr, '&buflisted')
+    endfunction "}}}
+
+    function! s:ctrl_tab_behavior(step) "{{{
+      let candidates = gettabvar(tabpagenr(), 'unite_buffer_dictionary')
+
+      let buflist = map(
+            \ filter(keys(candidates), '<SID>is_valid_buffer(v:val)'),
+            \ 'str2nr(v:val)')
+
+      if len(buflist) > 1
+        let pos = index(buflist, bufnr('%'))
+        if pos != -1
+          let next = (pos + a:step) % len(buflist)
+          execute ':buffer ' . buflist[next]
+        endif
+      endif
+    endfunction "}}}
+
+" }}}
+
+" Commands {{{
+  command! W w
+  command! Y y$
+  command! -nargs=0 -range CtrlTabBehavior      :call <SID>ctrl_tab_behavior(1)
+  command! -nargs=0 -range CtrlShiftTabBehavior :call <SID>ctrl_tab_behavior(-1)
 " }}}
 
 " Mappings {{{
   inoremap <silent> <Tab>      <C-r>=<SID>extended_tab_behavior()<cr>
   inoremap <silent> <Tab><Tab> <C-r>=<SID>double_tab_behavior()<cr>
 
-  nnoremap <C-S-Tab> :bprev<CR>
-  nnoremap <C-Tab> :bnext<CR>
+  nnoremap <C-Tab> :CtrlTabBehavior <CR>
+  nnoremap <C-S-Tab> :CtrlShiftTabBehavior <CR>
+
   nmap <C-Insert> "+y
   vmap <C-Insert> "+y
   nmap <S-Insert> "+gp
@@ -396,10 +428,6 @@ endif
   noremap <Down> <NOP>
   noremap <Left> <NOP>
   noremap <Right> <NOP>
-" }}}
-
-" Commands {{{
-  command! W w
 " }}}
 
 filetype plugin indent on
