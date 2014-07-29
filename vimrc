@@ -380,6 +380,10 @@ endif
             \ && getbufvar(bufnr, '&buflisted')
     endfunction "}}}
 
+    function! s:sort_numerically(a, b)
+      return a:a - a:b
+    endfunction
+
     function! s:ctrl_tab_behavior(step) "{{{
       let candidates = gettabvar(tabpagenr(), 'unite_buffer_dictionary')
 
@@ -388,7 +392,7 @@ endif
             \ 'str2nr(v:val)')
 
       if len(buflist) > 1
-        let pos = index(buflist, bufnr('%'))
+        let pos = index(sort(buflist, '<SID>sort_numerically'), bufnr('%'))
         if pos != -1
           let next = (pos + a:step) % len(buflist)
           execute ':buffer ' . buflist[next]
@@ -412,11 +416,14 @@ endif
   nnoremap <C-Tab> :CtrlTabBehavior <CR>
   nnoremap <C-S-Tab> :CtrlShiftTabBehavior <CR>
 
+  " select last paste in visual mode
+  nnoremap <expr> gb '`[' . strpart(getregtype(), 0, 1) . '`]'
+
   nmap <C-Insert> "+y
   vmap <C-Insert> "+y
   nmap <S-Insert> "+gp
   imap <S-Insert> <ESC>l<S-Insert>i
-  map <Esc><Esc><Esc>  :qa!<CR>
+  map <Esc><Esc><Esc>  :qa<CR>
   noremap <silent> <M-Right> :vertical resize +10<CR>
   noremap <silent> <M-Left>  :vertical resize -10<CR>
   noremap <silent> <M-Up>    :resize +10<CR>
@@ -428,6 +435,12 @@ endif
   noremap <Down> <NOP>
   noremap <Left> <NOP>
   noremap <Right> <NOP>
+  inoremap <Up> <NOP>
+  inoremap <Down> <NOP>
+  inoremap <Left> <NOP>
+  inoremap <Right> <NOP>
+
+  " inoremap <Backspace> <NOP>
 " }}}
 
 filetype plugin indent on
