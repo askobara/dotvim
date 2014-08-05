@@ -11,19 +11,13 @@ function! s:get_cache_dir(suffix) "{{{
   return resolve(expand(s:cache_dir . '/' . a:suffix))
 endfunction "}}}
 
-" Source the vimrc file after saving it
-augroup vimrc
-  autocmd!
-  autocmd bufwritepost .vimrc source $MYVIMRC | setlocal filetype=vim
-augroup end
-
 " number of colors in terminal
 set t_Co=256
 
 set number
 set relativenumber
 
-set foldmethod=marker
+set foldmethod=syntax
 
 " Allow backspacing everything in insert mode
 set backspace=indent,eol,start
@@ -92,20 +86,52 @@ set completeopt-=preview
 
 if exists('+colorcolumn')
   set colorcolumn=80
-  autocmd WinLeave * setlocal nocursorcolumn
-  autocmd WinEnter * setlocal cursorcolumn
+  augroup ccolumn
+    autocmd!
+    autocmd WinLeave * setlocal nocursorcolumn
+    autocmd WinEnter * setlocal cursorcolumn
+  augroup end
 endif
 
 if has('gui_running')
-  set cursorline
-  autocmd WinLeave * setlocal nocursorline
-  autocmd WinEnter * setlocal cursorline
+  " Only show cursorline in the current window and in normal mode.
+  augroup cline
+    autocmd!
+    autocmd WinLeave,InsertEnter * setlocal nocursorline
+    autocmd WinEnter,InsertLeave * setlocal cursorline
+  augroup end
+
   set guioptions=
   set mouse=
 
   set spell
   set spelllang=en_us
 endif
+
+augroup vimrc
+  autocmd!
+
+  " Source the vimrc file after saving it
+  autocmd BufWritePost .vimrc source $MYVIMRC | setlocal filetype=vim | call <SID>reload_interface()
+
+  " Recurcive open all folds
+  autocmd BufNewFile,BufRead * normal! zR
+
+  " Save when losing focus
+  autocmd FocusLost * :silent! wall
+
+  " Resize splits when the window is resized
+  autocmd VimResized * :wincmd =
+augroup end
+
+" Make sure Vim returns to the same line when you reopen a file.
+augroup line_return
+    autocmd!
+    autocmd BufReadPost *
+        \ if line("'\"") > 0 && line("'\"") <= line("$") |
+        \     execute 'normal! g`"zvzz' |
+        \ endif
+augroup end
 
 " NeoBundle begin {{{
 
@@ -341,6 +367,9 @@ endif
     let g:syntastic_php_checkers = ['php', 'phpcs', 'phpmd']
     let g:syntastic_javascript_checkers = ['jshint']
     let g:syntastic_html_checkers = ['tidy']
+
+    let g:syntastic_error_symbol = '☠'
+    let g:syntastic_warning_symbol = '⚠'
   "}}}
 "}}}
 
@@ -400,6 +429,12 @@ endif
       endif
     endfunction "}}}
 
+    function! s:reload_interface() "{{{
+      :AirlineRefresh
+      :AirlineToggle
+      :AirlineToggle
+    endfunction "}}}
+
 " }}}
 
 " Commands {{{
@@ -418,6 +453,18 @@ endif
 
   " select last paste in visual mode
   nnoremap <expr> gb '`[' . strpart(getregtype(), 0, 1) . '`]'
+
+  " Don't move on *
+  nnoremap * *<c-o>
+
+  " Keep search matches in the middle of the window.
+  nnoremap n nzzzv
+  nnoremap N Nzzzv
+
+  " Same when jumping around
+  nnoremap g; g;zz
+  nnoremap g, g,zz
+  nnoremap <c-o> <c-o>zz
 
   nmap <C-Insert> "+y
   vmap <C-Insert> "+y
@@ -439,8 +486,6 @@ endif
   inoremap <Down> <NOP>
   inoremap <Left> <NOP>
   inoremap <Right> <NOP>
-
-  " inoremap <Backspace> <NOP>
 " }}}
 
 filetype plugin indent on
