@@ -167,6 +167,8 @@ augroup end
   "}}}
 
   NeoBundle 'Shougo/vimproc.vim', {'build': {'unix': 'make -f make_unix.mak'}}
+
+  NeoBundle 'sheerun/vim-polyglot'
 " }}}
 
 " Unite {{{
@@ -256,19 +258,11 @@ augroup end
 "}}}
 
 " Javascript {{{
-  NeoBundleLazy 'pangloss/vim-javascript', {'autoload':{'filetypes':['javascript']}}
   NeoBundleLazy 'michalliu/sourcebeautify.vim', {'autoload':{'filetypes':['javascript', 'html', 'css']}, 'depends': ['michalliu/jsruntime.vim', 'michalliu/jsoncodecs.vim']}
 
-  " Syntax highlighting for JSON in Vim
-  NeoBundleLazy 'leshill/vim-json', {'autoload':{'filetypes':['javascript','json']}}
   NeoBundleLazy 'othree/javascript-libraries-syntax.vim', {'autoload':{'filetypes':['javascript','coffee','ls','typescript']}} " {{{
     let g:used_javascript_libs = 'underscore,angularjs,jquery'
   "}}}
-" }}}
-
-" HTML/CSS {{{
-  NeoBundleLazy 'vim-scripts/indenthtml.vim', {'autoload': {'filetypes': ['html']}}
-  NeoBundleLazy 'gorodinskiy/vim-coloresque.git', {'autoload': {'filetypes': ['html', 'css', 'less', 'sass']}}
 " }}}
 
 " Git {{{
@@ -295,7 +289,7 @@ augroup end
   NeoBundleLazy 'editorconfig/editorconfig-vim', {'autoload': {'insert':1}}
   NeoBundleLazy 'godlygeek/tabular', {'autoload':{'commands': 'Tabularize'}}
   NeoBundle 'tomtom/tcomment_vim'
-  NeoBundle 'terryma/vim-expand-region'
+
   NeoBundle 'terryma/vim-multiple-cursors' "{{{
     " Avoids conflict with GoldenView
     let g:multi_cursor_use_default_mapping=0
