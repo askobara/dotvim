@@ -1,9 +1,19 @@
 " Setup & neobundle {{{
-  set nocompatible
-  set all& "reset everything to their defaults
-  set runtimepath+=~/.vim/bundle/neobundle.vim/
-  call neobundle#rc(expand('~/.vim/bundle/'))
-  NeoBundleFetch 'Shougo/neobundle.vim'
+  if has('vim_starting')
+    set nocompatible               " Be iMproved
+
+    " Required:
+    set runtimepath+=~/.vim/bundle/neobundle.vim/
+  endif
+
+  let vundle_readme=expand('~/.vim/bundle/neobundle.vim/README.md')
+
+  if !filereadable(vundle_readme)
+    echo "Installing NeoBundle..."
+    echo ""
+    silent !mkdir -p ~/.vim/bundle
+    silent !git clone https://github.com/Shougo/neobundle.vim ~/.vim/bundle/neobundle.vim/
+  endif
 "}}}
 
 let s:cache_dir = '~/.vim/.cache'
@@ -136,6 +146,11 @@ augroup end
 " NeoBundle begin {{{
 
 " Core {{{
+  call neobundle#begin(expand('~/.vim/bundle/'))
+
+  " Let NeoBundle manage NeoBundle
+  NeoBundleFetch 'Shougo/neobundle.vim'
+
   " Extends the existing functionality of '%' key
   NeoBundle 'matchit.zip'
   NeoBundle 'tpope/vim-surround'
@@ -380,6 +395,9 @@ augroup end
   "}}}
 "}}}
 
+  call neobundle#end()
+  filetype plugin indent on
+
 "}}}
 
 " Functions {{{
@@ -494,8 +512,6 @@ augroup end
   inoremap <Left> <NOP>
   inoremap <Right> <NOP>
 " }}}
-
-filetype plugin indent on
 
 syntax enable
 
