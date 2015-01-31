@@ -6,9 +6,9 @@
     set runtimepath+=~/.vim/bundle/neobundle.vim/
   endif
 
-  let vundle_readme=expand('~/.vim/bundle/neobundle.vim/README.md')
+  let neobundle_readme=expand('~/.vim/bundle/neobundle.vim/README.md')
 
-  if !filereadable(vundle_readme)
+  if !filereadable(neobundle_readme)
     echo "Installing NeoBundle..."
     echo ""
     silent !mkdir -p ~/.vim/bundle
@@ -16,10 +16,14 @@
   endif
 "}}}
 
+" needs for nvim
+set runtimepath+=~/.vim/
+
 let s:cache_dir = '~/.vim/.cache'
 function! s:get_cache_dir(suffix) "{{{
   return resolve(expand(s:cache_dir . '/' . a:suffix))
 endfunction "}}}
+
 
 " number of colors in terminal
 set t_Co=256
@@ -27,7 +31,7 @@ set t_Co=256
 set number
 set relativenumber
 
-set foldmethod=syntax
+let mapleader = "\<Space>"
 
 " Allow backspacing everything in insert mode
 set backspace=indent,eol,start
@@ -82,11 +86,14 @@ set lazyredraw
 set ttyfast
 
 set ttimeout
-set timeoutlen=300
+set timeoutlen=500
 set ttimeoutlen=100
+set updatetime=1000
 
 set laststatus=2
 set noruler
+
+set foldmethod=expr
 
 set tags=tags;/
 
@@ -118,20 +125,20 @@ if has('gui_running')
   set spelllang=en_us
 endif
 
+if has('nvim')
+  " set unnamedclip
+  " set clipboard=unnamed
+endif
+
 augroup vimrc
   autocmd!
 
   " Source the vimrc file after saving it
-  autocmd BufWritePost .vimrc source $MYVIMRC | setlocal filetype=vim | call <SID>reload_interface()
-
-  " Recurcive open all folds
-  autocmd BufNewFile,BufRead * normal! zR
+  autocmd BufWritePost $MYVIMRC source $MYVIMRC | setlocal filetype=vim | call <SID>reload_interface()
 
   " Save when losing focus
-  autocmd FocusLost * :silent! wall
+  autocmd FocusLost,BufEnter * :silent! wall "| :SyntasticCheck
 
-  " Resize splits when the window is resized
-  autocmd VimResized * :wincmd =
 augroup end
 
 " Make sure Vim returns to the same line when you reopen a file.
@@ -152,21 +159,26 @@ augroup end
   NeoBundleFetch 'Shougo/neobundle.vim'
 
   " Extends the existing functionality of '%' key
-  NeoBundle 'matchit.zip'
+  NeoBundleLazy 'matchit.zip', { 'autoload' : { 'mappings' : ['%', 'g%'] }} "{{{
+    let bundle = neobundle#get('matchit.zip')
+    function! bundle.hooks.on_post_source(bundle)
+      silent! execute 'doautocmd Filetype' &filetype
+    endfunction
+  "}}}
+
   NeoBundle 'tpope/vim-surround'
 
   NeoBundle 'bling/vim-airline' "{{{
     let g:airline_theme = 'flatlandia'
     let g:airline_powerline_fonts = 1
     let g:airline#extensions#tabline#enabled = 1
-    let g:airline#extensions#syntastic#enabled = 1
     let g:airline#extensions#branch#enabled = 1
+    let g:airline#extensions#syntastic#enabled = 0
+    let g:airline#extensions#tabline#formatter = 'unique_tail'
   "}}}
 
   NeoBundle 'Shougo/vimfiler.vim', {'autoload':{'commands':['VimFilerExplorer','VimFiler']}} " {{{
     let g:vimfiler_as_default_explorer = 1
-    " Disable netrw.vim
-    let g:loaded_netrwPlugin = 1
     let g:vimfiler_data_directory = s:get_cache_dir('vimfiler')
     let g:vimfiler_tree_opened_icon = '▼'
     let g:vimfiler_tree_closed_icon = '▶'
@@ -174,11 +186,19 @@ augroup end
     let g:vimfiler_marked_file_icon = '★'
     let g:vimfiler_readonly_file_icon = ''
 
-    nmap <silent> <A-f> :VimFilerExplorer -find<CR>
-    autocmd FileType vimfiler
-          \ nmap <silent><buffer><expr> <Cr> vimfiler#smart_cursor_map(
-          \ "\<Plug>(vimfiler_expand_tree)",
-          \ "\<Plug>(vimfiler_edit_file)")
+    nmap <silent> <leader>t :VimFilerExplorer -buffer-name=explorer -find<CR>
+
+    augroup vimfiler
+      autocmd!
+      autocmd FileType vimfiler call s:vimfiler_settings()
+    augroup end
+
+    function! s:vimfiler_settings()
+      nunmap <buffer> <C-j>
+      nmap <silent><buffer><expr> <Cr> vimfiler#smart_cursor_map(
+            \ "\<Plug>(vimfiler_expand_tree)",
+            \ "\<Plug>(vimfiler_edit_file)")
+    endfunction
   "}}}
 
   NeoBundle 'Shougo/vimproc.vim', {'build': {'unix': 'make -f make_unix.mak'}}
@@ -193,7 +213,7 @@ augroup end
     let g:unite_data_directory=s:get_cache_dir('unite')
     let g:unite_enable_start_insert=1
     let g:unite_source_history_yank_enable=1
-    let g:unite_source_rec_max_cache_files=10000
+    let g:unite_source_rec_max_cache_files=0
     let g:unite_prompt='» '
 
     if executable('ag')
@@ -206,15 +226,15 @@ augroup end
       let g:unite_source_grep_recursive_opt=''
     endif
 
-    nmap <space> [unite]
-    nnoremap [unite] <nop>
+    nnoremap <silent> <leader>f :<C-u>Unite -auto-resize -toggle -resume -input= -buffer-name=files file_rec/async:!<CR>
+    nnoremap <silent> <leader>/ :<C-u>Unite -toggle -buffer-name=search grep:.<CR>
 
-    nnoremap <silent> [unite]f :<C-u>Unite -auto-resize -toggle -buffer-name=files file_rec/async:!<cr>
-    nnoremap <silent> [unite]y :<C-u>Unite -buffer-name=yanks history/yank<cr>
-    nnoremap <silent> [unite]/ :<C-u>Unite -toggle -buffer-name=search grep:.<cr>
-    nnoremap <silent> [unite]s :<C-u>Unite -auto-resize -toggle -buffer-name=buffers buffer_tab<cr>
     " Custom mappings for the unite buffer
-    autocmd FileType unite call s:unite_settings()
+    augroup unite
+      autocmd!
+      autocmd FileType unite call s:unite_settings()
+    augroup end
+
     function! s:unite_settings()
       " Enable navigation with control-j and control-k in insert mode
       imap <buffer> <C-j> <Plug>(unite_select_next_line)
@@ -222,14 +242,26 @@ augroup end
       nmap <buffer> <esc> <plug>(unite_exit)
       imap <buffer> <esc> <plug>(unite_exit)
     endfunction
+
+    let g:unite_source_menu_menus = {}
+    let g:unite_source_menu_menus.ftmenu = {'description': 'Fili type mune'}
+    let g:unite_source_menu_menus.ftmenu.command_candidates = [
+      \['phpdoc', 'call pdv#DocumentWithSnip()<CR>'],
+      \['phpcs-fixer file', 'call PhpCsFixerFixFile()'],
+      \['csscomb', 'CSScomb'],
+      \]
+    nnoremap <silent><leader>m :Unite -silent -auto-resize menu:ftmenu<CR>
+  "}}}
+  NeoBundle 'Shougo/tabpagebuffer.vim' "{{{
+    nnoremap <silent> <leader>s :<C-u>Unite -auto-resize -toggle -buffer-name=buffers buffer_tab<cr>
   "}}}
   " Most Recently Use
   NeoBundleLazy 'Shougo/neomru.vim', {'autoload':{'unite_sources':'file_mru'}} "{{{
-    nnoremap <silent> [unite]e :<C-u>Unite -auto-resize -buffer-name=recent file_mru<cr>
+    nnoremap <silent> <leader>e :<C-u>Unite -auto-resize -buffer-name=recent file_mru<cr>
   "}}}
 
   NeoBundleLazy 'Shougo/unite-outline', {'autoload':{'unite_sources':'outline'}} "{{{
-    nnoremap <silent> [unite]o :<C-u>Unite -auto-resize -buffer-name=outline outline<cr>
+    nnoremap <silent> <leader>o :<C-u>Unite -auto-resize -buffer-name=outline outline<cr>
   "}}}
 "}}}
 
@@ -238,7 +270,7 @@ augroup end
     let g:neocomplete#enable_at_startup = 1
     let g:neocomplete#disable_auto_complete=1
     let g:neocomplete#enable_smart_case = 1
-    let g:neocomplete#sources#syntax#min_keyword_length = 3
+    let g:neocomplete#sources#syntax#min_keyword_length = 2
     let g:neocomplete#data_directory=s:get_cache_dir('neocomplete')
 
     " <CR>: insert candidate and close neocomplete popup menu
@@ -254,7 +286,6 @@ augroup end
   " php documentor for vim - generates php docblocks
   NeoBundleLazy 'tobyS/pdv', {'depends': 'tobyS/vmustache', 'autoload': {'filetypes': 'php'}} "{{{
     let g:pdv_template_dir = $HOME."/.vim/bundle/pdv/templates_snip"
-    nnoremap <leader><leader>p :call pdv#DocumentWithSnip()<CR>
   "}}}
 
   " php refactoring support for vim
@@ -262,22 +293,39 @@ augroup end
     let g:php_refactor_command = 'php ~/bin/refactor.phar'
   "}}}
 
-  NeoBundleLazy 'shawncplus/phpcomplete.vim', {'autoload': {'filetypes': 'php'}} "{{{
-    if !exists('g:neocomplete#sources#omni#input_patterns')
-      let g:neocomplete#sources#omni#input_patterns = {}
-    endif
-    let g:neocomplete#sources#omni#input_patterns.php =
-        \ '\h\w*\|[^. \t]->\%(\h\w*\)\?\|\h\w*::\%(\h\w*\)\?'
+  " Use fabpot/PHP-CS-Fixer
+  NeoBundle 'stephpy/vim-php-cs-fixer', {'autoload': {'filetypes': 'php'}} "{{{
+    " If php-cs-fixer is in $PATH, you don't need to define line below
+    let g:php_cs_fixer_path = '~/bin/php-cs-fixer.phar' " define the path to the php-cs-fixer.phar
+    let g:php_cs_fixer_level = 'psr2'                 " which level ?
+    let g:php_cs_fixer_fixers_list = 'prs2,psr1,short_tag,-indentation,extra_empty_lines,-psr0' " List of fixers
+    let g:php_cs_fixer_enable_default_mapping = 0     " Enable the mapping by default (<leader>pcd)
+    let g:php_cs_fixer_dry_run = 0                    " Call command with dry-run option
+    let g:php_cs_fixer_verbose = 0                    " Return the output of command if 1, else an inline information.
   "}}}
 
 "}}}
 
 " Javascript {{{
-  NeoBundleLazy 'michalliu/sourcebeautify.vim', {'autoload':{'filetypes':['javascript', 'html', 'css']}, 'depends': ['michalliu/jsruntime.vim', 'michalliu/jsoncodecs.vim']}
+  NeoBundleLazy 'michalliu/sourcebeautify.vim', {'autoload':{
+        \'filetypes':['javascript', 'html', 'css']},
+        \'depends': ['michalliu/jsruntime.vim', 'michalliu/jsoncodecs.vim']
+        \}
 
-  NeoBundleLazy 'othree/javascript-libraries-syntax.vim', {'autoload':{'filetypes':['javascript','coffee','ls','typescript']}} " {{{
+  NeoBundleLazy 'marijnh/tern_for_vim', {
+        \'build': {'unix': 'npm install'},
+        \'autoload':{'filetypes':['javascript']}
+        \}
+
+  NeoBundleLazy 'othree/javascript-libraries-syntax.vim', {
+        \'autoload':{'filetypes':['javascript','coffee','ls','typescript']}} " {{{
     let g:used_javascript_libs = 'underscore,angularjs,jquery'
   "}}}
+" }}}
+
+" CSS {{{
+  NeoBundleLazy 'csscomb/vim-csscomb', {'autoload':{'filetypes':['css'], 'commands': 'CSScomb'}}
+  NeoBundleLazy 'cakebaker/scss-syntax.vim', {'autoload': {'filetypes': ['scss']}}
 " }}}
 
 " Git {{{
@@ -301,32 +349,38 @@ augroup end
 "}}}
 
 " Editing {{{
-  NeoBundleLazy 'editorconfig/editorconfig-vim', {'autoload': {'insert':1}}
+  NeoBundle 'editorconfig/editorconfig-vim'
   NeoBundleLazy 'godlygeek/tabular', {'autoload':{'commands': 'Tabularize'}}
   NeoBundle 'tomtom/tcomment_vim'
+  NeoBundle 'Raimondi/delimitMate' "{{{
+    let g:delimitMate_expand_cr = 1
+  "}}}
 
   NeoBundle 'terryma/vim-multiple-cursors' "{{{
     " Avoids conflict with GoldenView
     let g:multi_cursor_use_default_mapping=0
-    let g:multi_cursor_next_key='<C-j>'
-    let g:multi_cursor_prev_key='<C-k>'
-    let g:multi_cursor_skip_key='<C-x>'
+    let g:multi_cursor_next_key='<A-j>'
+    let g:multi_cursor_prev_key='<A-k>'
+    let g:multi_cursor_skip_key='<A-x>'
     let g:multi_cursor_quit_key='<Esc>'
   "}}}
 
   NeoBundle 'nathanaelkane/vim-indent-guides' "{{{
-  let g:indent_guides_start_level=2
-  let g:indent_guides_guide_size=1
-  let g:indent_guides_enable_on_vim_startup=1
-  let g:indent_guides_color_change_percent=3
-  if !has('gui_running')
-    let g:indent_guides_auto_colors=0
-    function! s:indent_set_console_colors()
-      hi IndentGuidesOdd ctermbg=235
-      hi IndentGuidesEven ctermbg=236
-    endfunction
-    autocmd VimEnter,Colorscheme * call s:indent_set_console_colors()
-  endif
+    let g:indent_guides_start_level=2
+    let g:indent_guides_guide_size=1
+    let g:indent_guides_enable_on_vim_startup=1
+    let g:indent_guides_color_change_percent=3
+    if !has('gui_running')
+      let g:indent_guides_auto_colors=0
+      function! s:indent_set_console_colors()
+        hi IndentGuidesOdd ctermbg=235
+        hi IndentGuidesEven ctermbg=236
+      endfunction
+      augroup indent_guides
+        autocmd!
+        autocmd VimEnter,Colorscheme * call s:indent_set_console_colors()
+      augroup end
+    endif
   "}}}
 "}}}
 
@@ -335,22 +389,35 @@ augroup end
   " Vim motions on speed
   NeoBundle 'Lokaltog/vim-easymotion'
 
-  NeoBundle 'terryma/vim-smooth-scroll' "{{{
-    noremap <silent> <c-u> :call smooth_scroll#up(&scroll, 0, 2)<CR>
-    noremap <silent> <c-d> :call smooth_scroll#down(&scroll, 0, 2)<CR>
-    noremap <silent> <c-b> :call smooth_scroll#up(&scroll*2, 0, 4)<CR>
-    noremap <silent> <c-f> :call smooth_scroll#down(&scroll*2, 0, 4)<CR>
-  "}}}
-
   " Plugin to help you stop repeating the basic movement keys
   NeoBundle 'takac/vim-hardtime' "{{{
     let g:hardtime_default_on = 1
+  "}}}
+
+  " Vim plugin that provides additional text objects
+  NeoBundle 'wellle/targets.vim'
+
+  NeoBundleLazy 'AndrewRadev/sideways.vim', {'autoload': {
+        \ 'commands': ['SidewaysLeft', 'SidewaysRight'],
+        \ 'mappings': ['<Plug>SidewaysArgumentTextobjA', '<Plug>SidewaysArgumentTextobjI']
+        \ }} "{{{
+
+    nnoremap <c-h> :SidewaysLeft<cr>
+    nnoremap <c-l> :SidewaysRight<cr>
+
+    omap aa <Plug>SidewaysArgumentTextobjA
+    xmap aa <Plug>SidewaysArgumentTextobjA
+    omap ia <Plug>SidewaysArgumentTextobjI
+    xmap ia <Plug>SidewaysArgumentTextobjI
   "}}}
 " }}}
 
 " Colorschemes {{{
   NeoBundle 'noahfrederick/Hemisu'
   NeoBundle 'jordwalke/flatlandia'
+  NeoBundle 'whatyouhide/vim-gotham'
+  NeoBundle 'altercation/vim-colors-solarized.git'
+  NeoBundle 'chriskempson/base16-vim'
 
   " Make gvim-only colorschemes work transparently in terminal vim
   NeoBundle 'godlygeek/csapprox'
@@ -359,17 +426,23 @@ augroup end
 " Misc {{{
 
   " Plugin to unload all buffers but the current one
-  NeoBundle 'duff/vim-bufonly'
+  NeoBundleLazy 'duff/vim-bufonly', {'autoload': {'commands': 'BufOnly'}}
 
   " Unload/delete/wipe a buffer, keep its window(s), display last accessed buffer(s)
   NeoBundle 'vim-scripts/bufkill.vim' "{{{
-    nmap <silent> <A-q> :BD<CR>
+    nmap <silent> <leader>q :BD<CR>
   "}}}
 
   NeoBundleLazy 'mattn/emmet-vim', {'autoload':{'filetypes':['html','xml','xsl','xslt','xsd','css','sass','scss','less','mustache']}}
 
   " Always have a nice view for vim split windows
-  NeoBundle 'zhaocai/GoldenView.Vim'
+  NeoBundle 'zhaocai/GoldenView.Vim' "{{{
+    let g:goldenview__enable_default_mapping = 0
+
+    " nmap <silent> <C-w>s <Plug>GoldenViewSplit
+    nmap <silent> <C-j> <Plug>GoldenViewNext
+    nmap <silent> <C-k> <Plug>GoldenViewPrevious
+  "}}}
 
   " Multi-language DBGP debugger client for Vim (PHP, Python, Perl, Ruby, etc.)
   NeoBundle 'joonty/vdebug.git' " {{{
@@ -383,16 +456,30 @@ augroup end
     let g:startify_session_dir = s:get_cache_dir('sessions')
     let g:startify_change_to_vcs_root = 1
     let g:startify_show_sessions = 1
+    let g:startify_bookmarks = [ '~/.vimrc' ]
   "}}}
 
   NeoBundle 'scrooloose/syntastic' "{{{
     let g:syntastic_php_checkers = ['php', 'phpcs', 'phpmd']
     let g:syntastic_javascript_checkers = ['jshint']
     let g:syntastic_html_checkers = ['tidy']
+    let g:syntastic_html_tidy_ignore_errors=[" proprietary attribute \"ng-", " proprietary attribute \"md-"]
 
     let g:syntastic_error_symbol = '☠'
     let g:syntastic_warning_symbol = '⚠'
+    let g:syntastic_style_error_symbol = '❗'
+    let g:syntastic_style_warning_symbol = '❗'
+
+    let g:syntastic_quiet_messages = { "type": "style" }
+
+    if exists('g:syntastic_extra_filetypes')
+      call add(g:syntastic_extra_filetypes, 'rust')
+    else
+      let g:syntastic_extra_filetypes = ['rust']
+    endif
   "}}}
+
+  NeoBundle 'powerman/vim-plugin-viewdoc'
 "}}}
 
   call neobundle#end()
@@ -439,7 +526,7 @@ augroup end
     endfunction
 
     function! s:ctrl_tab_behavior(step) "{{{
-      let candidates = gettabvar(tabpagenr(), 'unite_buffer_dictionary')
+      let candidates = gettabvar(tabpagenr(), 'tabpagebuffer')
 
       let buflist = map(
             \ filter(keys(candidates), '<SID>is_valid_buffer(v:val)'),
@@ -460,6 +547,50 @@ augroup end
       :AirlineToggle
     endfunction "}}}
 
+    function! s:extended_cr_behavior()
+      if pumvisible()
+        return "\<C-Y>"
+      elseif delimitMate#WithinEmptyPair()
+        return "\<C-R>=delimitMate#ExpandReturn()\<CR>"
+      else
+        return "\<CR>"
+      endif
+    endfunction
+
+    function! s:ChangeElement()
+      execute "normal! vat\<esc>"
+      call setpos('.', getpos("'<"))
+      let restore = @"
+      normal! yi>
+      let attributes = substitute(@", '^[^ ]*', '', '')
+      let @" = restore
+      let dounmapb = 0
+      if !maparg(">","c")
+        let dounmapb = 1
+        " Hide from AsNeeded
+        exe "cn"."oremap > <CR>"
+      endif
+      let tag = input('<', '')
+      if dounmapb
+        silent! cunmap >
+      endif
+      let tag = substitute(tag, '>*$', '', '')
+      exe "normal cst<" . tag . attributes . ">"
+    endfunction
+
+    function! s:compile_sass()
+      if executable('sass')
+        let output = fnameescape(expand('%'))
+        echom output
+        execute "!sass " . expand('%') . " " expand('%:r')
+      endif
+    endfunction
+
+    function! s:set_title()
+      let title = !empty(v:this_session) ? join(split(v:this_session, '/')[-1:-1]) : 'nvim'
+      let &titlestring = title
+      set title
+    endfunction
 " }}}
 
 " Commands {{{
@@ -467,11 +598,16 @@ augroup end
   command! Y y$
   command! -nargs=0 -range CtrlTabBehavior      :call <SID>ctrl_tab_behavior(1)
   command! -nargs=0 -range CtrlShiftTabBehavior :call <SID>ctrl_tab_behavior(-1)
+  command! -nargs=0 CompileSass :call <SID>compile_sass()
+  command! -nargs=0 SetTitle :call <SID>set_title()
 " }}}
 
 " Mappings {{{
   inoremap <silent> <Tab>      <C-r>=<SID>extended_tab_behavior()<cr>
   inoremap <silent> <Tab><Tab> <C-r>=<SID>double_tab_behavior()<cr>
+  inoremap <expr> <CR> "\<C-R>=<SID>extended_cr_behavior()\<CR>"
+  inoremap <expr> <BS> "\<C-R>=delimitMate#BS()\<CR>"
+  nnoremap cse :call <SID>ChangeElement()<cr>
 
   nnoremap <C-Tab> :CtrlTabBehavior <CR>
   nnoremap <C-S-Tab> :CtrlShiftTabBehavior <CR>
@@ -491,11 +627,19 @@ augroup end
   nnoremap g, g,zz
   nnoremap <c-o> <c-o>zz
 
+  vnoremap <silent> y y`]
+  vnoremap <silent> p p`]
+  nnoremap <silent> p p`]
+
+  inoremap SS <C-o>S
+  inoremap OO <C-o>O
+  inoremap DD <C-o>dd
+  inoremap UU <C-o>u
+
   nmap <C-Insert> "+y
   vmap <C-Insert> "+y
   nmap <S-Insert> "+gp
   imap <S-Insert> <ESC>l<S-Insert>i
-  map <Esc><Esc><Esc>  :qa<CR>
   noremap <silent> <M-Right> :vertical resize +10<CR>
   noremap <silent> <M-Left>  :vertical resize -10<CR>
   noremap <silent> <M-Up>    :resize +10<CR>
@@ -513,12 +657,19 @@ augroup end
   inoremap <Right> <NOP>
 " }}}
 
-syntax enable
+augroup Hooks
+  autocmd!
+augroup end
+
+" autocmd Hooks BufWritePost *.scss silent! CompileSass
+
+autocmd User Startified silent SetTitle
 
 " If there are uninstalled bundles found on startup,
 " this will conveniently prompt you to install them.
 NeoBundleCheck
 
+syntax enable
 colorscheme hemisu
 
 " vim: fdm=marker ts=2 sts=2 sw=2 fdl=0
